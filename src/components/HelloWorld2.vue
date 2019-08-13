@@ -1,9 +1,11 @@
 <template>
   <div class="hello">
     <el-button type="primary" @click="addCol()" class="addBtn">添加行</el-button>
-    <el-table :data="tableData" style="width: 100%">
-      <el-table-column type="index" label="序号" width="100" align="center"></el-table-column>
-      <el-table-column prop="flag" label="标识" width="100" align="center">
+    <el-button type="primary" @click="delCol()" class="addBtn">删除行</el-button>
+    <el-table :data="tableData" @selection-change="handleSelectionChange" style="width: 100%">
+      <el-table-column type="selection" width="40"></el-table-column>
+      <el-table-column type="index" label="序号"  width="50" :align="align"></el-table-column>
+      <el-table-column prop="flag" label="标识" width="50" :align="align">
         <template slot-scope="scope">
           <i v-if="scope.row.flag === 'del'" class="el-icon-delete"></i>
           <i v-else-if="scope.row.flag === 'add'" class="el-icon-circle-plus"></i>
@@ -13,7 +15,7 @@
       <template v-for="(col,index) in cols">
         <!-- 输入框 -->
         <template v-if="col.type ==='input'">
-          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" align="center">
+          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" :align="align">
             <template slot-scope="scope">
               <!-- 原始值 -->
               <template v-if="scope.row['_'+col.prop]">
@@ -22,6 +24,9 @@
               <!-- 编辑状态下显示input框 -->
               <el-input
                 v-if="scope.row.isSet"
+                maxlength="20"
+                show-word-limit
+                placeholder="请输入内容"
                 v-model="tableData[scope.$index][col.prop]"
                 @focus="edit(col.prop,scope.row[col.prop],scope.$index,$event)"
               />
@@ -32,7 +37,7 @@
         </template>
         <!-- 下拉框 -->
         <template v-else-if="col.type === 'sel'">
-          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" align="center">
+          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" :align="align">
             <template slot-scope="scope">
               <!-- 原始值 -->
               <template v-if="scope.row['_'+col.prop]">
@@ -68,7 +73,7 @@
         </template>
         <!-- 日期框 -->
         <template v-else-if="col.type === 'date'">
-          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" align="center">
+          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" :align="align" width="240">
             <template slot-scope="scope">
               <!-- 原始值 -->
               <template v-if="scope.row['_'+col.prop]">
@@ -91,17 +96,17 @@
         </template>
         <!-- 非控件类型 -->
         <template v-else>
-          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" align="center"></el-table-column>
+          <el-table-column :key="index" :prop="col.prop" :label="col.label" :sortable="col.sortable?col.sortable:''" :align="align"></el-table-column>
         </template>
       </template>
-      <el-table-column label="操作">
+      <el-table-column label="操作" :align="align">
         <template slot-scope="scope">
           <template v-if="scope.row.flag !== 'del'">
             <el-button size="mini" type="danger" @click="delleteRow(scope.row)">删除</el-button>
             <el-button
               size="mini"
               type="danger"
-              @click="changeNum(scope.row,scope.$index)"
+              @click="changeNum(scope.row)"
             >{{scope.row.isSet?'保存':'修改'}}</el-button>
           </template>
         </template>
@@ -113,23 +118,32 @@
 <script>
 export default {
   name: "HelloWorld",
+  props:{
+    align:{
+      default:'center',
+      type:String
+    }
+  },
   data() {
     return {
       len: 4,
       tableData: [
         {
+          EAF_ID:1,
           date: "2016-05-02 00:11:00",
           name: "王小虎",
           address: "上海市普陀区金沙江路 1518 弄",
           flag: "del"
         },
         {
+          EAF_ID:2,
           date: "2016-05-04 00:22:00",
           name: "王小虎",
           address: "上海市普陀区金沙江路 1517 弄",
           flag: "del"
         },
         {
+          EAF_ID:3,
           date: "2016-05-01 00:33:09",
           name: "王小虎",
           address: "上海市普陀区金沙江路 1519 弄",
@@ -162,6 +176,7 @@ export default {
           }
         },
         {
+          EAF_ID:4,
           date: "2016-05-01 00:00:00",
           name: "王小虎",
           address: "上海市普陀区金沙江路 1519 弄"
@@ -172,7 +187,8 @@ export default {
         { prop: "name", label: "姓名", type: "input" },
         { prop: "address", label: "地址", type: "text" },
         { prop: "select", label: "选项", type: "sel" }
-      ]
+      ],
+      multipleSelection:[]
     };
   },
   methods: {
@@ -187,14 +203,28 @@ export default {
     // 添加行
     addCol() {
       this.tableData.push({
+        EAF_ID:5,
         date: "2016-05-03 00:00:00",
         name: "hhahahah",
         address: "上海市普陀区金沙江路 1516 弄",
         flag: "add"
       });
     },
+    delCol(){
+      this.tableData.forEach(item=>{
+        if(item.isSet){
+          alert("有未保存的数据,请先保存再进行操作!")
+          return false
+        }
+        this.multipleSelection.forEach(cont=>{
+          if(item.EAF_ID === cont.EAF_ID){
+            this.$set(item,'flag','del')
+          }
+        })
+      })
+    },
     // 编辑
-    edit(oldVal, name, index, event) {
+    edit(oldVal, name, index) {
       let $key = "_" + oldVal;
       if (this.tableData[index].hasOwnProperty($key)) {
         return false;
@@ -202,7 +232,7 @@ export default {
         this.tableData[index][$key] = name;
       }
     },
-    leave(oldVal, index, event) {
+    leave(oldVal, index) {
       let $key = "_" + oldVal;
       if (this.tableData[index].hasOwnProperty($key)) {
         // event.target.parentElement.previousElementSibling.style.display =
@@ -210,7 +240,7 @@ export default {
       }
     },
     // 退出编辑状态之后用文本框显示
-    changeNum(row, index) {
+    changeNum(row) {
       if (row.isSet) {
         this.$set(row, "isSet", false);
       } else {
@@ -221,7 +251,7 @@ export default {
     selFormatter(row, key) {
       // row下拉框所有值，key当前要显示的值的value
       let val = "";
-      row.map((value, index, array) => {
+      row.map((value) => {
         if (value["EAF_ID"] === key) {
           val = value["EAF_NAME"];
         }
@@ -248,6 +278,9 @@ export default {
       } else {
         this.tableData[index][$key] = name;
       }
+    },
+    handleSelectionChange(val) {
+      this.multipleSelection = val;
     }
   }
 };
